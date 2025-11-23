@@ -143,7 +143,8 @@ export const useBluesky = () => {
                            .replace(/{runner2}/g, runInfo.runner2 || '')
                            .replace(/{runner3}/g, runInfo.runner3 || '')
                            .replace(/{runner4}/g, runInfo.runner4 || '')
-                           .replace(/{commentator}/g, runInfo.commentator || '');
+                           .replace(/{commentator}/g, runInfo.commentator || '')
+                           .replace(/{customMessage}/g, runInfo.customMessage || '');
       }
       
       // Use RichText to handle links and mentions

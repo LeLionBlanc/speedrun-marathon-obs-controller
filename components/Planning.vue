@@ -47,6 +47,20 @@
                   <v-icon start size="small">mdi-send</v-icon>
                   Bluesky Auto-Post Enabled
                 </v-chip>
+                
+                <v-divider class="my-3"></v-divider>
+                
+                <h4 class="text-subtitle-1 mb-2">Custom Message for Bluesky</h4>
+                <v-textarea
+                  v-model="currentCustomMessage"
+                  label="Custom message for this run"
+                  hint="This message will be included in the Bluesky post when this run starts"
+                  persistent-hint
+                  auto-grow
+                  variant="outlined"
+                  rows="3"
+                  class="mt-2"
+                ></v-textarea>
               </v-alert>
               
               <v-card-actions class="justify-center">
@@ -168,6 +182,7 @@ interface Run {
   isRace: boolean;
   commentator: string;
   startat: string;
+  customMessage?: string; // Added custom message field
   [key: string]: string | boolean | undefined; // Add index signature
 }
 
@@ -186,6 +201,7 @@ const blueskyPostResult = ref<string | null>(null);
 const planning = ref("");
 const currentStep = ref(0);
 const showPlanning = ref(false);
+const currentCustomMessage = ref("");
 
 // Check if any run is a race
 const hasRaces = computed(() => {
@@ -202,6 +218,18 @@ if (typeof window !== "undefined" && window.localStorage) {
   if (idData) {
     currentStep.value = +idData;
   }
+  
+  // Load custom message for current run
+  if (planning.value && currentStep.value >= 0) {
+    try {
+      const parsedRuns = JSON.parse(planning.value);
+      if (parsedRuns && parsedRuns[currentStep.value]) {
+        currentCustomMessage.value = parsedRuns[currentStep.value].customMessage || "";
+      }
+    } catch (e) {
+      console.error("Error loading custom message:", e);
+    }
+  }
 }
 
 const runs = computed(() => {
@@ -217,7 +245,18 @@ const runs = computed(() => {
 });
 
 const addIndex = (nbr: number) => {
+  // Save current custom message to the current run
+  if (runs.value.length > 0 && currentStep.value < runs.value.length) {
+    runs.value[currentStep.value].customMessage = currentCustomMessage.value;
+  }
+  
+  // Update current step
   currentStep.value += nbr;
+  
+  // Load custom message from the new current run
+  if (runs.value.length > 0 && currentStep.value < runs.value.length) {
+    currentCustomMessage.value = runs.value[currentStep.value].customMessage || "";
+  }
 };
 
 const switchPlanning = () => {
@@ -277,6 +316,9 @@ const update = async () => {
     return;
   }
   
+  // Save current custom message to the current run
+  runs.value[currentStep.value].customMessage = currentCustomMessage.value;
+  
   const currentRun = runs.value[currentStep.value];
   // Update run-specific fields
   if (currentRun.gamename) await obs.changeText(obs_txt.gamename, currentRun.gamename);
@@ -331,7 +373,19 @@ watch(currentStep, (newVal) => {
   if (typeof window !== "undefined" && window.localStorage) {
     localStorage.setItem("idData", newVal.toString());
   }
+  
+  // Update custom message when current step changes
+  if (runs.value.length > 0 && newVal < runs.value.length) {
+    currentCustomMessage.value = runs.value[newVal].customMessage || "";
+  }
 });
+
+// Watch for changes in runs to update the custom message
+watch(runs, (newRuns) => {
+  if (newRuns.length > 0 && currentStep.value < newRuns.length) {
+    currentCustomMessage.value = newRuns[currentStep.value].customMessage || "";
+  }
+}, { deep: true });
 
 // Post to Bluesky
 const postToBluesky = async (run: Run) => {

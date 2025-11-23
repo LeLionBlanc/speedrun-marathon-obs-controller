@@ -92,7 +92,7 @@
                       <v-textarea
                         v-model="postTemplate.text"
                         label="Post Template"
-                        hint="Use {gamename}, {gamecategory}, {gamesupport}, {runner}, etc. as placeholders"
+                        hint="Use {gamename}, {gamecategory}, {gamesupport}, {runner}, {customMessage}, etc. as placeholders"
                         persistent-hint
                         auto-grow
                         variant="outlined"
@@ -230,7 +230,7 @@ const credentials = reactive({
 
 // Post template
 const postTemplate = reactive({
-  text: bluesky.savedPost.text || 'Now playing: {gamename} {gamecategory} on {gamesupport} by {runner}',
+  text: bluesky.savedPost.text || 'Now playing: {gamename} {gamecategory} on {gamesupport} by {runner}\n\n{customMessage}',
   gifUrl: bluesky.savedPost.gifUrl || ''
 });
 
@@ -256,6 +256,7 @@ interface Run {
   runner4?: string;
   commentator: string;
   startat: string;
+  customMessage?: string; // Added custom message field
   [key: string]: string | undefined;
 }
 
@@ -360,7 +361,8 @@ const previewText = computed(() => {
             .replace(/{runner2}/g, run.runner2 || '')
             .replace(/{runner3}/g, run.runner3 || '')
             .replace(/{runner4}/g, run.runner4 || '')
-            .replace(/{commentator}/g, run.commentator || '');
+            .replace(/{commentator}/g, run.commentator || '')
+            .replace(/{customMessage}/g, run.customMessage || '');
 });
 
 // Test post
