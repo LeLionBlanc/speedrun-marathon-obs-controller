@@ -11,6 +11,11 @@ interface BlueskyPost {
   gifUrl?: string;
 }
 
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
 export const useBluesky = () => {
   const agent = new BskyAgent({
     service: 'https://bsky.social'
@@ -92,6 +97,31 @@ export const useBluesky = () => {
     }
   };
 
+  // Helper function to fetch an image and get its dimensions
+  const fetchImageAndGetDimensions = async (url: string): Promise<{ buffer: ArrayBuffer, dimensions: ImageDimensions }> => {
+    try {
+      // Fetch the image
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      
+      const buffer = await response.arrayBuffer();
+      
+      // For simplicity, we'll use default dimensions
+      // In a production app, you would want to actually determine the dimensions
+      const dimensions = {
+        width: 800,
+        height: 600
+      };
+      
+      return { buffer, dimensions };
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      throw error;
+    }
+  };
+
   // Create a post with run information
   const createPost = async (runInfo: any, customText?: string) => {
     try {
@@ -116,21 +146,49 @@ export const useBluesky = () => {
                            .replace(/{commentator}/g, runInfo.commentator || '');
       }
       
-      // Add GIF URL to the post if available
-      if (savedPost.gifUrl) {
-        postText += `\n\n${savedPost.gifUrl}`;
-      }
-      
       // Use RichText to handle links and mentions
       const rt = new RichText({ text: postText });
       await rt.detectFacets(agent);
       
-      // Create the post with rich text support
-      const response = await agent.post({
+      let postOptions: any = {
         text: rt.text,
         facets: rt.facets,
         createdAt: new Date().toISOString()
-      });
+      };
+      
+      // If a GIF URL is provided, try to upload it as an image
+      if (savedPost.gifUrl) {
+        try {
+          const { buffer, dimensions } = await fetchImageAndGetDimensions(savedPost.gifUrl);
+          
+          // Determine the MIME type based on the URL
+          const isGif = savedPost.gifUrl.toLowerCase().endsWith('.gif');
+          const encoding = isGif ? 'image/gif' : 'image/jpeg';
+          
+          // Upload the image to Bluesky's blob storage
+          const uploadResponse = await agent.uploadBlob(new Uint8Array(buffer), { encoding });
+          
+          // Add the image to the post
+          postOptions.embed = {
+            $type: 'app.bsky.embed.images',
+            images: [{
+              alt: `Image for ${runInfo?.gamename || 'current run'}`,
+              image: uploadResponse.data.blob,
+              aspectRatio: {
+                width: dimensions.width,
+                height: dimensions.height
+              }
+            }]
+          };
+        } catch (imageError) {
+          console.error('Failed to upload image, falling back to URL in text:', imageError);
+          // If image upload fails, fall back to including the URL in the text
+          postOptions.text += `\n\n${savedPost.gifUrl}`;
+        }
+      }
+      
+      // Create the post
+      const response = await agent.post(postOptions);
       
       return response;
     } catch (error: any) {
