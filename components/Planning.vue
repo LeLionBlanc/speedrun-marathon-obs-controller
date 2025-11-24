@@ -9,22 +9,7 @@
           </v-card-title>
           
           <v-card-text>
-            <v-sheet class="pa-4 mb-4" rounded color="grey-lighten-4">
-              <h3 class="text-h6 mb-2">Planning Input</h3>
-              <v-textarea
-                v-model="planning"
-                label="Enter JSON planning data"
-                hint="Enter your planning data in JSON format"
-                persistent-hint
-                auto-grow
-                variant="outlined"
-                rows="5"
-              ></v-textarea>
-            </v-sheet>
-
-            <v-divider class="my-4"></v-divider>
-
-            <v-sheet v-if="runs.length" class="pa-4" rounded color="grey-lighten-4">
+            <v-sheet v-if="runs.length" class="pa-4 mb-4" rounded color="grey-lighten-4">
               <h3 class="text-h6 mb-2">Controls</h3>
               
               <v-alert
@@ -107,6 +92,38 @@
                 </v-btn>
               </v-card-actions>
             </v-sheet>
+
+            <v-divider class="my-4"></v-divider>
+
+            <v-card class="mb-4">
+              <v-card-title class="d-flex align-center">
+                <span class="text-h6">Planning Input</span>
+                <v-spacer></v-spacer>
+                <v-btn
+                  @click="showPlanningInput = !showPlanningInput"
+                  :icon="showPlanningInput ? 'mdi-eye-off' : 'mdi-eye'"
+                  variant="text"
+                  color="primary"
+                ></v-btn>
+              </v-card-title>
+              
+              <v-expand-transition>
+                <div v-if="showPlanningInput">
+                  <v-divider></v-divider>
+                  <v-card-text>
+                    <v-textarea
+                      v-model="planning"
+                      label="Enter JSON planning data"
+                      hint="Enter your planning data in JSON format"
+                      persistent-hint
+                      auto-grow
+                      variant="outlined"
+                      rows="5"
+                    ></v-textarea>
+                  </v-card-text>
+                </div>
+              </v-expand-transition>
+            </v-card>
           </v-card-text>
         </v-card>
       </v-col>
@@ -169,6 +186,7 @@ const props = defineProps({
 });
 import { useObsWebsocket } from '../composable/useObsWebsocket';
 import { useBluesky } from '../composable/useBluesky';
+import { useStreamTitle } from '../composable/useStreamTitle';
 
 interface Run {
   gamename: string;
@@ -192,6 +210,7 @@ interface ObsTextMapping {
 
 const obs = useObsWebsocket();
 const bluesky = useBluesky();
+const streamTitle = useStreamTitle();
 await obs.connect();
 
 // Bluesky posting state
@@ -201,6 +220,7 @@ const blueskyPostResult = ref<string | null>(null);
 const planning = ref("");
 const currentStep = ref(0);
 const showPlanning = ref(false);
+const showPlanningInput = ref(false);
 const currentCustomMessage = ref("");
 
 // Check if any run is a race
@@ -360,6 +380,16 @@ const update = async () => {
   // Post to Bluesky if auto-post is enabled
   if (props.autoPostEnabled) {
     await postToBluesky(currentRun);
+  }
+  
+  // Update Twitch stream title
+  try {
+    const titleUpdated = await streamTitle.updateTitle(currentRun);
+    if (!titleUpdated) {
+      console.warn('Failed to update Twitch stream title. Check Twitch credentials.');
+    }
+  } catch (error) {
+    console.error('Error updating Twitch stream title:', error);
   }
 };
 

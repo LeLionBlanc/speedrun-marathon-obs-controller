@@ -25,7 +25,7 @@ export const useObsWebsocket = () => {
       connectionError.value = null;
       console.log('Connected to OBS WebSocket');
       await fetchScenes(); // Récupérer les scènes après connexion
-    } catch (error: Error) {
+    } catch (error: any) {
       connectionStatus.value = false;
       connectionError.value = error.message;
       console.error('Failed to connect to OBS:', error);

@@ -1,31 +1,39 @@
 <template>
   <v-container fluid>
-    <v-card>
+    <v-card elevation="2">
       <v-tabs
         v-model="activeTab"
         bg-color="primary"
         align-tabs="center"
+        show-arrows
+        slider-color="white"
+        height="56"
+
       >
-        <v-tab value="home" to="/">
+        <v-tab value="home" to="/" class="px-4" :ripple="false">
           <v-icon start>mdi-home</v-icon>
-          Home
+          <span class="font-weight-medium">Home</span>
         </v-tab>
-        <v-tab value="planning" @click="step = 'planning'">
+        <v-tab value="planning" @click="step = 'planning'" class="px-4" :ripple="false">
           <v-icon start>mdi-calendar</v-icon>
-          Planning
+          <span class="font-weight-medium">Planning</span>
         </v-tab>
-        <v-tab value="txt" @click="step = 'txt'">
+        <v-tab value="txt" @click="step = 'txt'" class="px-4" :ripple="false">
           <v-icon start>mdi-text</v-icon>
-          Text Sources
+          <span class="font-weight-medium">Text Sources</span>
         </v-tab>
-        <v-tab value="bluesky" @click="step = 'bluesky'">
+        <v-tab value="streamTitle" @click="step = 'streamTitle'" class="px-4" :ripple="false">
+          <v-icon start>mdi-format-title</v-icon>
+          <span class="font-weight-medium">Stream Title</span>
+        </v-tab>
+        <v-tab value="bluesky" @click="step = 'bluesky'" class="px-4" :ripple="false">
           <v-icon start>mdi-send</v-icon>
-          Bluesky
+          <span class="font-weight-medium">Bluesky</span>
         </v-tab>
       </v-tabs>
     </v-card>
 
-    <v-card class="mt-4" flat>
+    <v-card class="mt-4" flat :style="{ marginTop: '16px' }">
       <v-card-text>
         <v-window v-model="step">
           <v-window-item value="home">
@@ -58,6 +66,10 @@
             <DisplayTest />
           </v-window-item>
 
+          <v-window-item value="streamTitle">
+            <StreamTitleConfig :current-run="currentRunData" />
+          </v-window-item>
+
           <v-window-item value="bluesky">
             <BlueskyConfig ref="blueskyConfig" @update:auto-post-enabled="updateBlueskyAutoPost" />
           </v-window-item>
@@ -68,14 +80,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import BlueskyConfig from '../components/BlueskyConfig.vue';
+import StreamTitleConfig from '../components/StreamTitleConfig.vue';
 
 const route = useRoute();
 const step = ref('home');
 const activeTab = ref<string | null>('home');
 const blueskyAutoPostEnabled = ref(false);
+const currentRunData = ref(null);
 
 // Load Bluesky auto-post setting from localStorage
 if (typeof window !== "undefined" && window.localStorage) {
@@ -92,8 +106,8 @@ const updateBlueskyAutoPost = (enabled: boolean) => {
 
 onMounted(() => {
   // Get step from URL query parameter if available
-  const queryStep = route.query.step as string;
-  if (queryStep && ['home', 'planning', 'txt', 'bluesky'].includes(queryStep)) {
+    const queryStep = route.query.step as string;
+    if (queryStep && ['home', 'planning', 'txt', 'streamTitle', 'bluesky'].includes(queryStep)) {
     step.value = queryStep;
     activeTab.value = queryStep;
   }
@@ -102,5 +116,53 @@ onMounted(() => {
 // Watch for step changes to update the active tab
 watch(step, (newStep) => {
   activeTab.value = newStep;
+  
+  // If we're on the planning tab, try to get the current run data
+  if (newStep === 'planning' || newStep === 'streamTitle') {
+    loadCurrentRunData();
+  }
+});
+
+// Load current run data from localStorage
+const loadCurrentRunData = () => {
+  if (typeof window !== "undefined" && window.localStorage) {
+    const planningData = localStorage.getItem("planningData");
+    const idData = localStorage.getItem("idData");
+    
+    if (planningData && idData) {
+      try {
+        const runs = JSON.parse(planningData);
+        const currentStep = parseInt(idData, 10);
+        
+        if (runs && runs[currentStep]) {
+          currentRunData.value = runs[currentStep];
+        }
+      } catch (e) {
+        console.error("Error loading current run data:", e);
+      }
+    }
+  }
+};
+
+// Load current run data on component mount
+onMounted(() => {
+  loadCurrentRunData();
 });
 </script>
+
+<style scoped>
+/* Make selected tab more visible */
+:deep(.v-tab--selected) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+:deep(.v-tab--selected .v-icon),
+:deep(.v-tab--selected .font-weight-medium) {
+  color: white !important;
+}
+
+:deep(.v-tab__slider) {
+  background-color: white;
+  height: 3px;
+}
+</style>
