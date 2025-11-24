@@ -20,7 +20,7 @@
             </v-alert>
             
             <v-alert
-              v-if="bluesky.connectionError"
+              v-if="bluesky.connectionError && bluesky.connectionError.length > 0"
               type="error"
               variant="tonal"
               icon="mdi-alert-circle"
@@ -319,6 +319,7 @@ const connectToBluesky = async () => {
 const disconnectFromBluesky = () => {
   // Reset connection state
   bluesky.isConnected.value = false;
+  bluesky.connectionError.value = null; // Clear any previous connection error
   showSnackbar('Disconnected from Bluesky', 'info');
 };
 
