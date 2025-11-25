@@ -102,8 +102,9 @@
                     <v-col cols="12">
                       <v-text-field
                         v-model="postTemplate.gifUrl"
-                        label="GIF URL (optional)"
-                        hint="URL to a GIF to include in the post"
+                        label="Image (optional)"
+                        hint="URL to an image to include in the post"
+                        placeholder="image_url from planning"
                         persistent-hint
                         variant="outlined"
                       ></v-text-field>

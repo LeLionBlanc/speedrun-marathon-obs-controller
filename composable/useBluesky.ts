@@ -111,8 +111,8 @@ export const useBluesky = () => {
       // For simplicity, we'll use default dimensions
       // In a production app, you would want to actually determine the dimensions
       const dimensions = {
-        width: 800,
-        height: 600
+        width: 1920,
+        height: 1080
       };
       
       return { buffer, dimensions };
@@ -136,6 +136,16 @@ export const useBluesky = () => {
       let postText = customText || savedPost.text;
       
       if (runInfo) {
+        // // Add formatted game, category, runner, and commentator info before the custom message
+        // const gameInfo = `🎮 ${runInfo.gamename || ''} - ${runInfo.gamecategory || ''}\n`;
+        // const runnerInfo = `🏃 ${runInfo.runner || ''}\n`;
+        // const commentatorInfo = `🎙️ ${runInfo.commentator || ''}\n\n`;
+        
+        // // Add the formatted prefix to the custom message if it exists
+        // if (runInfo.customMessage) {
+        //   runInfo.customMessage = gameInfo + runnerInfo + commentatorInfo + runInfo.customMessage;
+        // }
+        
         postText = postText.replace(/{gamename}/g, runInfo.gamename || '')
                            .replace(/{gamecategory}/g, runInfo.gamecategory || '')
                            .replace(/{gamesupport}/g, runInfo.gamesupport || '')
@@ -157,13 +167,16 @@ export const useBluesky = () => {
         createdAt: new Date().toISOString()
       };
       
-      // If a GIF URL is provided, try to upload it as an image
-      if (savedPost.gifUrl) {
+      // Use image_url from planning data if available, otherwise use the saved gifUrl
+      const imageUrl = runInfo?.image_url || savedPost.gifUrl;
+      
+      // If an image URL is provided, try to upload it as an image
+      if (imageUrl) {
         try {
-          const { buffer, dimensions } = await fetchImageAndGetDimensions(savedPost.gifUrl);
+          const { buffer, dimensions } = await fetchImageAndGetDimensions(imageUrl);
           
           // Determine the MIME type based on the URL
-          const isGif = savedPost.gifUrl.toLowerCase().endsWith('.gif');
+          const isGif = imageUrl.toLowerCase().endsWith('.gif');
           const encoding = isGif ? 'image/gif' : 'image/jpeg';
           
           // Upload the image to Bluesky's blob storage
@@ -184,7 +197,7 @@ export const useBluesky = () => {
         } catch (imageError) {
           console.error('Failed to upload image, falling back to URL in text:', imageError);
           // If image upload fails, fall back to including the URL in the text
-          postOptions.text += `\n\n${savedPost.gifUrl}`;
+          postOptions.text += `\n\n${imageUrl}`;
         }
       }
       
