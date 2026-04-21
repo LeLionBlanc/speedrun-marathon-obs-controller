@@ -79,12 +79,18 @@ export default defineNuxtPlugin((nuxtApp) => {
   });
   
   // Track navigation performance using Nuxt hooks
-  nuxtApp.hook('page:start', (path) => {
-    startMark(`navigation:${path}`);
+  let currentNavPath: string | null = null;
+
+  nuxtApp.hook('page:start', () => {
+    currentNavPath = useRouter().currentRoute.value.path;
+    startMark(`navigation:${currentNavPath}`);
   });
-  
-  nuxtApp.hook('page:finish', (path) => {
-    endMark(`navigation:${path}`);
+
+  nuxtApp.hook('page:finish', () => {
+    if (currentNavPath) {
+      endMark(`navigation:${currentNavPath}`);
+      currentNavPath = null;
+    }
   });
   
   // Add custom performance marks for key user interactions

@@ -11,6 +11,7 @@
       app
       temporary
       :rail="rail"
+      :mobile-breakpoint="0"
       @click="rail = false"
     >
       <v-list>
